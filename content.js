@@ -2,8 +2,9 @@
   'use strict';
 
   const EXT_ID = 'cgpt-md-composer-root';
-  const STORAGE_KEY = 'cgpt-md-composer-draft-v2';
-  const SETTINGS_KEY = 'cgpt-md-composer-settings-v2';
+  const STORAGE_KEY = 'cgpt-md-composer-draft-v3';
+  const SETTINGS_KEY = 'cgpt-md-composer-settings-v3';
+  const GITHUB_URL = 'https://github.com/NanXiudao/chatgpt-markdown-composer';
 
   if (document.getElementById(EXT_ID)) return;
 
@@ -11,7 +12,7 @@
     width: 1120,
     height: 720,
     preview: true,
-    autoCloseAfterSend: false
+    theme: 'dark'
   };
 
   const state = {
@@ -20,9 +21,12 @@
     settings: { ...defaultSettings, ...readLocal(SETTINGS_KEY, {}) }
   };
 
+  if (!['dark', 'light'].includes(state.settings.theme)) state.settings.theme = 'dark';
+
   const rootHost = document.createElement('div');
   rootHost.id = EXT_ID;
   rootHost.setAttribute('data-chatgpt-markdown-composer', 'true');
+  rootHost.setAttribute('data-theme', state.settings.theme);
   document.documentElement.appendChild(rootHost);
 
   const shadow = rootHost.attachShadow({ mode: 'open' });
@@ -30,38 +34,52 @@
     <style>
       :host {
         all: initial;
-        --surface: #ffffff;
-        --surface-soft: #f7f7f8;
-        --surface-muted: #ececf1;
-        --ink: #202123;
-        --muted: #6e6e80;
-        --muted-2: #8e8ea0;
-        --border: #d9d9e3;
-        --border-soft: #ececf1;
-        --accent: #10a37f;
-        --accent-hover: #0e8f70;
-        --danger: #d92d20;
-        --shadow: 0 24px 70px rgba(0, 0, 0, .20);
         --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
         --sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        --accent: #8f7a52;
+        --accent-soft: rgba(143, 122, 82, .14);
+        --danger: #c34a36;
       }
 
-      @media (prefers-color-scheme: dark) {
-        :host {
-          --surface: #202123;
-          --surface-soft: #171717;
-          --surface-muted: #2f2f2f;
-          --ink: #ececf1;
-          --muted: #c5c5d2;
-          --muted-2: #9b9ba7;
-          --border: #3f3f46;
-          --border-soft: #2f2f2f;
-          --shadow: 0 24px 70px rgba(0, 0, 0, .48);
-        }
+      :host([data-theme="dark"]) {
+        --page: #111111;
+        --surface: #191919;
+        --surface-elevated: #202020;
+        --surface-hover: #2a2a2a;
+        --surface-muted: #252525;
+        --ink: #f1f1ef;
+        --ink-soft: #d7d7d4;
+        --muted: #a8a8a3;
+        --muted-2: #787774;
+        --border: #30302e;
+        --border-soft: #2a2a28;
+        --overlay: rgba(0, 0, 0, .52);
+        --shadow: 0 26px 80px rgba(0, 0, 0, .44);
+        --input: #191919;
+        --selection: rgba(143, 122, 82, .32);
+      }
+
+      :host([data-theme="light"]) {
+        --page: #f7f7f5;
+        --surface: #ffffff;
+        --surface-elevated: #ffffff;
+        --surface-hover: #f1f1ef;
+        --surface-muted: #f7f7f5;
+        --ink: #2f3437;
+        --ink-soft: #37352f;
+        --muted: #6b6b66;
+        --muted-2: #9b9a97;
+        --border: #e5e4df;
+        --border-soft: #eeeeea;
+        --overlay: rgba(15, 15, 15, .28);
+        --shadow: 0 26px 80px rgba(15, 15, 15, .18);
+        --input: #ffffff;
+        --selection: rgba(143, 122, 82, .20);
       }
 
       * { box-sizing: border-box; }
-      button, textarea { font: inherit; }
+      button, textarea, a { font: inherit; }
+      ::selection { background: var(--selection); }
 
       .launcher {
         position: fixed;
@@ -70,48 +88,27 @@
         z-index: 2147483647;
         display: inline-flex;
         align-items: center;
-        gap: 9px;
-        height: 42px;
+        justify-content: center;
+        height: 38px;
         border: 1px solid var(--border);
-        background: color-mix(in srgb, var(--surface) 96%, transparent);
-        color: var(--ink);
-        border-radius: 999px;
-        padding: 0 14px 0 10px;
-        font: 600 13px/1 var(--sans);
-        box-shadow: 0 10px 30px rgba(0,0,0,.14);
+        background: color-mix(in srgb, var(--surface-elevated) 94%, transparent);
+        color: var(--ink-soft);
+        border-radius: 10px;
+        padding: 0 13px;
+        font: 520 13px/1 var(--sans);
+        letter-spacing: -.01em;
+        box-shadow: 0 10px 28px rgba(0,0,0,.16);
         cursor: pointer;
         user-select: none;
         backdrop-filter: blur(14px);
-        transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+        transition: background .14s ease, border-color .14s ease, transform .14s ease, color .14s ease;
       }
       .launcher:hover {
         transform: translateY(-1px);
-        border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-        box-shadow: 0 16px 38px rgba(0,0,0,.18);
+        background: var(--surface-hover);
+        border-color: color-mix(in srgb, var(--border) 72%, var(--ink));
+        color: var(--ink);
       }
-      .launcher-mark, .brand-mark {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 auto;
-        overflow: hidden;
-      }
-      .launcher-mark {
-        width: 25px;
-        height: 25px;
-        border-radius: 9px;
-        background: #202123;
-        color: #ffffff;
-      }
-      .brand-mark {
-        width: 34px;
-        height: 34px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #202123 0%, #343541 58%, #10a37f 100%);
-        color: #ffffff;
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
-      }
-      .launcher-mark svg, .brand-mark svg { width: 70%; height: 70%; }
 
       .overlay {
         position: fixed;
@@ -121,8 +118,8 @@
         align-items: center;
         justify-content: center;
         padding: 18px;
-        background: rgba(32, 33, 35, .34);
-        backdrop-filter: blur(7px);
+        background: var(--overlay);
+        backdrop-filter: blur(5px);
         font-family: var(--sans);
       }
       .overlay.open { display: flex; }
@@ -130,10 +127,10 @@
       .panel {
         width: min(calc(100vw - 36px), var(--panel-width));
         height: min(calc(100vh - 36px), var(--panel-height));
-        background: var(--surface-soft);
+        background: var(--page);
         color: var(--ink);
         border: 1px solid var(--border);
-        border-radius: 24px;
+        border-radius: 12px;
         overflow: hidden;
         box-shadow: var(--shadow);
         display: grid;
@@ -141,30 +138,28 @@
       }
 
       .topbar {
-        min-height: 72px;
+        min-height: 66px;
         display: flex;
         align-items: center;
         gap: 16px;
-        padding: 14px 16px 14px 18px;
+        padding: 13px 15px 13px 18px;
         border-bottom: 1px solid var(--border-soft);
-        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        background: var(--surface);
       }
       .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
         min-width: 220px;
         margin-right: auto;
       }
       .brand-title {
         font-size: 15px;
-        font-weight: 700;
-        letter-spacing: -.01em;
+        font-weight: 620;
+        letter-spacing: -.02em;
         color: var(--ink);
       }
       .brand-subtitle {
-        margin-top: 3px;
+        margin-top: 4px;
         font-size: 12px;
+        line-height: 1.2;
         color: var(--muted);
         white-space: nowrap;
       }
@@ -172,49 +167,45 @@
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: 8px;
+        gap: 7px;
         flex-wrap: wrap;
       }
       .btn {
-        border: 1px solid var(--border);
-        background: var(--surface);
-        color: var(--ink);
-        border-radius: 999px;
-        padding: 9px 12px;
-        min-height: 36px;
-        font: 600 12px/1 var(--sans);
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--ink-soft);
+        border-radius: 7px;
+        padding: 7px 10px;
+        min-height: 32px;
+        font: 520 12px/1 var(--sans);
+        letter-spacing: -.005em;
         cursor: pointer;
-        transition: background .12s ease, border-color .12s ease, transform .12s ease, opacity .12s ease;
+        transition: background .12s ease, border-color .12s ease, color .12s ease;
       }
       .btn:hover {
-        transform: translateY(-1px);
-        border-color: color-mix(in srgb, var(--ink) 25%, var(--border));
+        background: var(--surface-hover);
+        border-color: var(--border-soft);
+        color: var(--ink);
       }
       .btn.primary {
         background: var(--ink);
         color: var(--surface);
         border-color: var(--ink);
       }
-      .btn.accent {
-        background: var(--accent);
-        color: #ffffff;
-        border-color: var(--accent);
+      :host([data-theme="dark"]) .btn.primary {
+        background: #f1f1ef;
+        color: #191919;
+        border-color: #f1f1ef;
       }
-      .btn.accent:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+      .btn.primary:hover { opacity: .88; }
       .btn.danger { color: var(--danger); }
-      .btn.icon {
-        width: 36px;
-        padding: 0;
-        font-size: 19px;
-        line-height: 1;
-      }
 
       .body {
         min-height: 0;
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, .92fr);
-        gap: 12px;
-        padding: 12px;
+        gap: 10px;
+        padding: 10px;
       }
       .body.no-preview { grid-template-columns: minmax(0, 1fr); }
       .body.no-preview .preview-card { display: none; }
@@ -224,23 +215,22 @@
         min-height: 0;
         display: flex;
         flex-direction: column;
-        background: var(--surface);
+        background: var(--surface-elevated);
         border: 1px solid var(--border-soft);
-        border-radius: 18px;
+        border-radius: 9px;
         overflow: hidden;
-        box-shadow: 0 1px 2px rgba(0,0,0,.04);
       }
       .card-head {
-        height: 43px;
+        height: 42px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 0 14px;
+        padding: 0 13px;
         border-bottom: 1px solid var(--border-soft);
         color: var(--muted);
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 520;
       }
       .card-head code {
         color: var(--muted-2);
@@ -256,10 +246,10 @@
         border: 0;
         outline: none;
         padding: 20px 22px;
-        background: transparent;
+        background: var(--input);
         color: var(--ink);
         caret-color: var(--accent);
-        font: 14px/1.72 var(--mono);
+        font: 14px/1.74 var(--mono);
         tab-size: 2;
         white-space: pre-wrap;
         overflow-wrap: break-word;
@@ -270,7 +260,7 @@
         flex: 1;
         overflow: auto;
         padding: 20px 24px;
-        color: var(--ink);
+        color: var(--ink-soft);
         font: 14px/1.74 var(--sans);
       }
       .preview .empty {
@@ -280,78 +270,115 @@
         text-align: center;
         color: var(--muted-2);
         border: 1px dashed var(--border);
-        border-radius: 14px;
+        border-radius: 8px;
         padding: 28px;
-        background: color-mix(in srgb, var(--surface-soft) 62%, transparent);
+        background: var(--surface-muted);
       }
       .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6 {
         color: var(--ink);
         line-height: 1.25;
         margin: 1.05em 0 .52em;
-        letter-spacing: -.02em;
+        letter-spacing: -.025em;
       }
-      .preview h1 { font-size: 1.85em; border-bottom: 1px solid var(--border-soft); padding-bottom: .35em; }
-      .preview h2 { font-size: 1.42em; }
-      .preview h3 { font-size: 1.17em; }
+      .preview h1 { font-size: 1.78em; border-bottom: 1px solid var(--border-soft); padding-bottom: .34em; }
+      .preview h2 { font-size: 1.36em; }
+      .preview h3 { font-size: 1.14em; }
       .preview p { margin: .78em 0; }
       .preview ul, .preview ol { padding-left: 1.55em; margin: .72em 0; }
       .preview li + li { margin-top: .2em; }
       .preview blockquote {
         margin: 1em 0;
-        padding: .18em 1em;
+        padding: .2em 1em;
         color: var(--muted);
         border-left: 3px solid var(--accent);
-        background: color-mix(in srgb, var(--accent) 7%, transparent);
-        border-radius: 0 10px 10px 0;
+        background: var(--accent-soft);
+        border-radius: 0 7px 7px 0;
       }
       .preview code {
         font-family: var(--mono);
         background: var(--surface-muted);
-        padding: .12em .38em;
-        border-radius: 6px;
+        border: 1px solid var(--border-soft);
+        padding: .12em .36em;
+        border-radius: 5px;
         font-size: .92em;
       }
       .preview pre {
         overflow: auto;
-        background: color-mix(in srgb, var(--surface-soft) 82%, var(--surface));
+        background: var(--surface-muted);
         border: 1px solid var(--border-soft);
-        border-radius: 14px;
+        border-radius: 8px;
         padding: 14px 16px;
       }
-      .preview pre code { background: transparent; padding: 0; }
+      .preview pre code { background: transparent; border: 0; padding: 0; }
       .preview table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: .96em; }
       .preview th, .preview td { border: 1px solid var(--border); padding: 7px 9px; }
-      .preview th { background: var(--surface-soft); text-align: left; }
+      .preview th { background: var(--surface-muted); text-align: left; }
       .preview a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offset: .2em; }
 
       .footer {
-        min-height: 44px;
-        padding: 10px 16px;
+        min-height: 46px;
+        padding: 9px 14px;
         display: flex;
-        gap: 12px;
+        gap: 10px;
         align-items: center;
         color: var(--muted);
         border-top: 1px solid var(--border-soft);
         font-size: 12px;
-        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        background: var(--surface);
       }
       .pill {
         display: inline-flex;
         align-items: center;
         gap: 6px;
         border: 1px solid var(--border-soft);
-        border-radius: 999px;
+        border-radius: 7px;
         padding: 4px 8px;
-        background: var(--surface-soft);
+        background: var(--surface-muted);
         white-space: nowrap;
       }
-      .status { margin-left: auto; color: var(--muted); white-space: nowrap; }
+      .footer-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        min-width: 0;
+      }
+      .github {
+        color: var(--muted);
+        text-decoration: none;
+        border: 1px solid var(--border-soft);
+        background: var(--surface-muted);
+        border-radius: 7px;
+        padding: 6px 9px;
+        white-space: nowrap;
+        transition: color .12s ease, background .12s ease, border-color .12s ease;
+      }
+      .github:hover {
+        color: var(--ink);
+        background: var(--surface-hover);
+        border-color: var(--border);
+      }
+      .theme-toggle {
+        border: 1px solid var(--border-soft);
+        background: var(--surface-muted);
+        color: var(--muted);
+        border-radius: 7px;
+        padding: 6px 9px;
+        cursor: pointer;
+      }
+      .theme-toggle:hover {
+        color: var(--ink);
+        background: var(--surface-hover);
+        border-color: var(--border);
+      }
+      .status { color: var(--muted); white-space: nowrap; }
       .kbd {
         border: 1px solid var(--border);
         border-bottom-width: 2px;
-        border-radius: 6px;
+        border-radius: 5px;
         padding: 1px 5px;
-        background: var(--surface);
+        background: var(--surface-elevated);
         color: var(--muted);
         font: 600 11px/1.35 var(--sans);
       }
@@ -365,11 +392,15 @@
         max-width: min(440px, calc(100vw - 44px));
         background: var(--ink);
         color: var(--surface);
-        border: 1px solid color-mix(in srgb, var(--surface) 18%, transparent);
-        border-radius: 14px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
         box-shadow: 0 16px 44px rgba(0,0,0,.24);
-        padding: 11px 13px;
+        padding: 10px 12px;
         font: 13px/1.5 var(--sans);
+      }
+      :host([data-theme="dark"]) .toast {
+        background: #f1f1ef;
+        color: #191919;
       }
       .toast.show { display: block; }
 
@@ -382,37 +413,26 @@
         .body.no-preview { grid-template-columns: 1fr; }
         .brand-subtitle { white-space: normal; }
         .footer { flex-wrap: wrap; }
-        .status { margin-left: 0; }
+        .footer-right { margin-left: 0; flex-wrap: wrap; }
       }
     </style>
 
-    <button class="launcher" title="Open Markdown Composer (Ctrl/Cmd + Shift + E)">
-      <span class="launcher-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 7.5h8.7M5 12h14M5 16.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17 6.5l2 2-2 2" stroke="#10a37f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-      <span>Composer</span>
-    </button>
+    <button class="launcher" title="Open Markdown Composer (Ctrl/Cmd + Shift + E)">Composer</button>
 
     <div class="overlay" role="dialog" aria-modal="true" aria-label="Markdown Composer for ChatGPT">
       <section class="panel">
         <header class="topbar">
           <div class="brand">
-            <span class="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M5 7.5h8.7M5 12h14M5 16.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17 6.5l2 2-2 2" stroke="#10a37f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <span>
-              <div class="brand-title">Markdown Composer</div>
-              <div class="brand-subtitle">为长 Prompt 准备的本地增强输入层</div>
-            </span>
+            <div class="brand-title">Markdown Composer</div>
+            <div class="brand-subtitle">为长 Prompt 准备的本地增强输入层</div>
           </div>
           <div class="actions">
             <button class="btn import-current" title="读取当前 ChatGPT 输入框内容">导入当前</button>
             <button class="btn toggle-preview">隐藏预览</button>
             <button class="btn copy">复制</button>
-            <button class="btn sync">放入输入框</button>
-            <button class="btn accent send">发送</button>
+            <button class="btn primary sync">放入输入框</button>
             <button class="btn danger clear">清空</button>
-            <button class="btn icon close" title="关闭">×</button>
+            <button class="btn close">关闭</button>
           </div>
         </header>
 
@@ -420,7 +440,7 @@
           <section class="card editor-card">
             <div class="card-head">
               <span>Markdown 原文</span>
-              <code>Ctrl/Cmd + Enter 发送</code>
+              <code>Ctrl/Cmd + Enter 放入输入框</code>
             </div>
             <textarea spellcheck="false" placeholder="在这里写长文本 Prompt。支持 Markdown、代码块、表格、列表。\n\n示例：\n# 任务\n请基于以下上下文进行分析……\n\n\`\`\`python\nprint('hello')\n\`\`\`"></textarea>
           </section>
@@ -436,9 +456,12 @@
 
         <footer class="footer">
           <span class="pill count">0 字符 · 0 行</span>
-          <span class="pill">草稿保存在本机 localStorage</span>
           <span class="pill"><span class="kbd">Esc</span> 关闭</span>
           <span class="status">Ready</span>
+          <span class="footer-right">
+            <a class="github" href="${GITHUB_URL}" target="_blank" rel="noreferrer noopener">GitHub · 点个 Star</a>
+            <button class="theme-toggle" type="button">切换浅色</button>
+          </span>
         </footer>
       </section>
     </div>
@@ -456,20 +479,22 @@
   const status = $('.status');
   const toast = $('.toast');
   const togglePreviewButton = $('.toggle-preview');
+  const themeToggleButton = $('.theme-toggle');
 
   panel.style.setProperty('--panel-width', `${state.settings.width}px`);
   panel.style.setProperty('--panel-height', `${state.settings.height}px`);
   textarea.value = state.draft;
   body.classList.toggle('no-preview', !state.settings.preview);
   updatePreviewButton();
+  updateThemeButton();
   render();
 
   launcher.addEventListener('click', toggleOpen);
   $('.close').addEventListener('click', closeComposer);
   togglePreviewButton.addEventListener('click', togglePreview);
+  themeToggleButton.addEventListener('click', toggleTheme);
   $('.copy').addEventListener('click', copyDraft);
-  $('.sync').addEventListener('click', () => syncToChatGPT(false));
-  $('.send').addEventListener('click', () => syncToChatGPT(true));
+  $('.sync').addEventListener('click', syncToChatGPT);
   $('.clear').addEventListener('click', clearDraft);
   $('.import-current').addEventListener('click', importCurrentComposer);
 
@@ -494,7 +519,7 @@
 
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
       event.preventDefault();
-      syncToChatGPT(true);
+      syncToChatGPT();
     }
   });
 
@@ -531,13 +556,30 @@
 
   function togglePreview() {
     state.settings.preview = !state.settings.preview;
-    writeLocal(SETTINGS_KEY, state.settings);
+    persistSettings();
     body.classList.toggle('no-preview', !state.settings.preview);
     updatePreviewButton();
   }
 
   function updatePreviewButton() {
     togglePreviewButton.textContent = state.settings.preview ? '隐藏预览' : '显示预览';
+  }
+
+  function toggleTheme() {
+    state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+    rootHost.setAttribute('data-theme', state.settings.theme);
+    persistSettings();
+    updateThemeButton();
+    showToast(state.settings.theme === 'dark' ? '已切换到暗色。' : '已切换到浅色。');
+  }
+
+  function updateThemeButton() {
+    themeToggleButton.textContent = state.settings.theme === 'dark' ? '切换浅色' : '切换暗色';
+    themeToggleButton.setAttribute('aria-label', state.settings.theme === 'dark' ? '切换到浅色模式' : '切换到暗色模式');
+  }
+
+  function persistSettings() {
+    writeLocal(SETTINGS_KEY, state.settings);
   }
 
   async function copyDraft() {
@@ -573,7 +615,7 @@
     showToast('已导入当前输入框内容。');
   }
 
-  async function syncToChatGPT(shouldSend) {
+  function syncToChatGPT() {
     const text = textarea.value.trimEnd();
     if (!text) {
       showToast('当前编辑器为空。');
@@ -589,20 +631,7 @@
     try {
       insertText(composer, text);
       setStatus('已放入 ChatGPT 输入框');
-
-      if (!shouldSend) {
-        showToast('已放入 ChatGPT 输入框。');
-        return;
-      }
-
-      const sent = await clickSendButton();
-      if (sent) {
-        setStatus('已发送');
-        showToast('已调用 ChatGPT 原生发送按钮。');
-        if (state.settings.autoCloseAfterSend) closeComposer();
-      } else {
-        showToast('已放入输入框，但没有找到可点击的发送按钮。你可以手动点击发送。');
-      }
+      showToast('已放入 ChatGPT 输入框。请在原页面手动发送。');
     } catch (error) {
       console.error('[Markdown Composer for ChatGPT]', error);
       showToast(`同步失败：${error && error.message ? error.message : '未知错误'}`);
@@ -674,46 +703,6 @@
 
     el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-
-  async function clickSendButton() {
-    for (let i = 0; i < 24; i += 1) {
-      const button = findSendButton();
-      if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') {
-        button.click();
-        return true;
-      }
-      await sleep(100);
-    }
-    return false;
-  }
-
-  function findSendButton() {
-    const exactSelectors = [
-      '[data-testid="send-button"]',
-      '[data-testid="composer-submit-button"]',
-      'button[aria-label="Send prompt"]',
-      'button[aria-label="Send message"]',
-      'button[aria-label="发送"]',
-      'button[aria-label="发送消息"]'
-    ];
-
-    for (const selector of exactSelectors) {
-      const el = document.querySelector(selector);
-      if (el && isVisible(el)) return el;
-    }
-
-    const buttons = Array.from(document.querySelectorAll('button')).filter(isVisible);
-    const byLabel = buttons.find(button => {
-      const label = `${button.getAttribute('aria-label') || ''} ${button.title || ''} ${button.textContent || ''}`.toLowerCase();
-      return label.includes('send') || label.includes('发送');
-    });
-    if (byLabel) return byLabel;
-
-    return buttons.find(button => {
-      const rect = button.getBoundingClientRect();
-      return rect.bottom > window.innerHeight - 220 && rect.right > window.innerWidth / 2 && !button.disabled;
-    }) || null;
   }
 
   function render() {
@@ -889,9 +878,5 @@
     } catch (_) {
       // Ignore storage quota / privacy-mode failures.
     }
-  }
-
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 })();

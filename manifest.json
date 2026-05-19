@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Markdown Composer for ChatGPT",
   "short_name": "MD Composer",
-  "version": "0.2.0",
-  "description": "A local Markdown composer overlay for long ChatGPT prompts. Edit, preview, save drafts, and send through the native ChatGPT input box.",
+  "version": "0.3.0",
+  "description": "A local Markdown composer overlay for long ChatGPT prompts. Edit, preview, save drafts, and place text into the native ChatGPT input box.",
   "host_permissions": [
     "https://chatgpt.com/*",
     "https://chat.openai.com/*"
