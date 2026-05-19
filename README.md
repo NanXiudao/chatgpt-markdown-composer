@@ -1,5 +1,7 @@
 # Markdown Composer for ChatGPT
+
 [use.gif]
+
 一个面向长 Prompt 的本地 Markdown 输入增强插件。
 
 它不会替换 ChatGPT 的原生发送流程，也不会主动触发发送按钮，而是在 ChatGPT 页面上增加一个更适合长文本写作的本地编辑器。
