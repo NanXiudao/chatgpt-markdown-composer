@@ -84,9 +84,9 @@ Markdown Composer for ChatGPT 的目标很简单：
 2. 打开 Chrome。
 3. 地址栏输入：
 
-   ```text
+```text
    chrome://extensions/
-````
+```
 
 4. 打开右上角的「开发者模式」。
 
@@ -96,9 +96,9 @@ Markdown Composer for ChatGPT 的目标很简单：
 
 7. 打开或刷新：
 
-   ```text
+```text
    https://chatgpt.com/
-   ```
+```
 
 8. 页面右下角会出现 `Composer` 按钮。
 
@@ -156,7 +156,7 @@ Markdown Composer for ChatGPT 的目标很简单：
 
 你可以直接使用 Markdown 语法，例如：
 
-````markdown
+```markdown
 # 任务
 
 请帮我分析下面这段代码。
@@ -174,9 +174,7 @@ Markdown Composer for ChatGPT 的目标很简单：
 function add(a, b) {
   return a + b
 }
-````
-
-````
+```
 
 编辑器适合写：
 
@@ -300,8 +298,6 @@ function add(a, b) {
 
 ```python
 print("hello")
-````
-
 ````
 
 ---
