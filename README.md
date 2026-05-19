@@ -1,6 +1,6 @@
 # Markdown Composer for ChatGPT
 
-[use.gif]
+[!use.gif]
 
 一个面向长 Prompt 的本地 Markdown 输入增强插件。
 
